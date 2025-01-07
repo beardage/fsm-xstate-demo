@@ -1,0 +1,30 @@
+# DEPENDENCIES
+node-modules/
+
+# BUILD
+build/
+public/build/
+dist/
+generated/
+
+# MAC
+._*
+.DS_Store
+Thumbs.db
+
+# MISC
+.idea
+.cache/
+.next/
+next-env.d.ts
+.nuxt/
+tmp/
+temp/
+.docusaurus
+*.tsbuildinfo
+
+.turbo
+.vercel
+
+# TYPESCRIPT
+*.tsbuildinfo
