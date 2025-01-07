@@ -1,5 +1,5 @@
 # DEPENDENCIES
-node-modules/
+node_modules/
 
 # BUILD
 build/
