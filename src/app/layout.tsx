@@ -3,8 +3,8 @@ import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Slap Fighter",
-  description: "A simple fighting game using XState",
+  title: "RPS Machine",
+  description: "A simple RPS fighting game using XState",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

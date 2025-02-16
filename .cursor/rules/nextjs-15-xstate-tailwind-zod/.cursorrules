@@ -29,6 +29,8 @@ CODING STYLE
 Code must start with path/filename as a one-line comment
 Comments MUST describe mainly purpose, but also effect when necessary
 Prioritize modularity, DRY, performance, and security
+Always use inference types if possible, and use explicit types if necessary
+
 
 CODING PROCESS
 

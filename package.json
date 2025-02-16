@@ -12,14 +12,16 @@
     "preview": "next build && next start",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache"
+    "format": "prettier --write \"**/*.{ts,tsx,md,js,jsx,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,js,jsx,json}\"",
+    "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache"
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.10.1",
     "@xstate/react": "^5.0.1",
     "@xstate/store": "^2.6.2",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.4.3",
     "geist": "^1.3.0",
     "next": "^15.0.1",
     "react": "^18.3.1",

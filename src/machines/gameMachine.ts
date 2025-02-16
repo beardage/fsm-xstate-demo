@@ -1,152 +1,110 @@
 import { assign, setup } from "xstate";
+import { type Move, type Player, getWinner } from "~/utils/game";
 
-const damageValues = [0.5, 1, 1.5];
-const critDamage = 2.5;
-const isRandomCrit = () => Math.random() > 0.9;
-const getDamage = (defending: boolean, crit: boolean) => {
-  return crit
-    ? critDamage
-    : (damageValues[
-        defending ? 0 : Math.floor(Math.random() * damageValues.length)
-      ] ?? 0);
-};
+export interface ActionLog {
+  playerOne: Move;
+  playerTwo: Move;
+  winner: Player | "draw" | null;
+  damage: {
+    toPlayerOne: number;
+    toPlayerTwo: number;
+    isCritical: boolean;
+  };
+}
 
-type ActionLog = {
-  player: "one" | "two";
-  action: "attack";
-  damage: number;
-  isCrit: boolean;
-};
-
-const initialState = {
+const initialContext = {
+  playerOneMove: null as Move,
+  playerTwoMove: null as Move,
   playerOneHP: 10,
-  playerOneState: "idle",
   playerTwoHP: 10,
-  playerTwoState: "idle",
-  winner: null as string | null,
-  started: false,
   lastAction: null as ActionLog | null,
+  started: false,
+};
+
+const calculateDamage = (winner: Player | "draw" | null, forPlayer: Player) => {
+  if (!winner) return 0;
+  if (winner === "draw") return 1;
+  return winner === forPlayer ? 0 : 3;
 };
 
 export const gameMachine = setup({
   types: {
-    context: {} as typeof initialState,
+    context: {} as typeof initialContext,
     events: {} as
       | { type: "START_GAME" }
-      | { type: "ATTACK"; player: "one" | "two" }
-      | { type: "reset" },
-  },
-  actions: {
-    setWinner: assign({
-      winner: ({ context }) => {
-        return context.playerOneHP <= 0 ? "playerTwo" : "playerOne";
-      },
-    }),
-    updateGame: assign({
-      playerOneHP: ({ context, event }) => {
-        if (!context.started || event.type !== "ATTACK") return context.playerOneHP;
-        if (event.player === "two") {
-          const isCrit = isRandomCrit();
-          const damage = getDamage(context.playerOneState === "defending", isCrit);
-          return context.playerOneHP - damage;
-        }
-        return context.playerOneHP;
-      },
-      playerTwoHP: ({ context, event }) => {
-        if (!context.started || event.type !== "ATTACK") return context.playerTwoHP;
-        if (event.player === "one") {
-          const isCrit = isRandomCrit();
-          const damage = getDamage(context.playerTwoState === "defending", isCrit);
-          return context.playerTwoHP - damage;
-        }
-        return context.playerTwoHP;
-      },
-      lastAction: ({ context, event }) => {
-        if (!context.started || event.type !== "ATTACK") return null;
-        const isCrit = isRandomCrit();
-        const damage = getDamage(
-          event.player === "one" 
-            ? context.playerTwoState === "defending"
-            : context.playerOneState === "defending",
-          isCrit
-        );
-        return {
-          player: event.player,
-          action: "attack",
-          damage,
-          isCrit,
-        };
-      },
-    }),
-    startGame: assign({
-      started: () => true,
-      lastAction: () => null,
-    }),
-    resetGame: assign({
-      ...initialState,
-      started: true,
-      lastAction: null,
-    }),
-  },
-  guards: {
-    checkWinner: ({ context }) => {
-      return (
-        context.started &&
-        (context.playerOneHP <= 0 || context.playerTwoHP <= 0)
-      );
-    },
-    checkDraw: ({ context }) => {
-      return (
-        context.started && context.playerOneHP <= 0 && context.playerTwoHP <= 0
-      );
-    },
+      | { type: "SELECT_MOVE"; player: Player; move: Move }
+      | { type: "FIGHT" }
+      | { type: "RESET" },
   },
 }).createMachine({
-  context: initialState,
-  id: "(machine)",
-  initial: "idle",
+  context: initialContext,
+  id: "game",
+  initial: "IDLE",
   states: {
-    idle: {
+    IDLE: {
       on: {
         START_GAME: {
-          target: "playing",
-          actions: ["startGame", "resetGame"],
+          target: "PLAYING",
+          actions: assign({ ...initialContext, started: true }),
         },
       },
     },
-    playing: {
+    PLAYING: {
       on: {
-        ATTACK: {
-          target: "playing",
-          actions: "updateGame",
+        SELECT_MOVE: {
+          actions: assign({
+            playerOneMove: ({ event, context }) =>
+              event.player === "one" ? event.move : context.playerOneMove,
+            playerTwoMove: ({ event, context }) =>
+              event.player === "two" ? event.move : context.playerTwoMove,
+          }),
+        },
+        FIGHT: {
+          target: "RESOLVING",
+          guard: ({ context }) =>
+            !!context.playerOneMove && !!context.playerTwoMove,
         },
       },
-      always: [
-        {
-          target: "gameOver.winner",
-          guard: "checkWinner",
-        },
-        {
-          target: "gameOver.draw",
-          guard: "checkDraw",
-        },
-      ],
+      always: {
+        target: "GAME_OVER",
+        guard: ({ context }) =>
+          context.playerOneHP <= 0 || context.playerTwoHP <= 0,
+      },
     },
-    gameOver: {
-      initial: "winner",
-      on: {
-        reset: {
-          target: "playing",
-          actions: "resetGame",
+    RESOLVING: {
+      entry: assign(({ context }) => {
+        const winner = getWinner(context.playerOneMove, context.playerTwoMove);
+        const isCritical = winner !== "draw";
+        const toPlayerOne = calculateDamage(winner, "one");
+        const toPlayerTwo = calculateDamage(winner, "two");
+
+        return {
+          lastAction: {
+            playerOne: context.playerOneMove,
+            playerTwo: context.playerTwoMove,
+            winner,
+            damage: { toPlayerOne, toPlayerTwo, isCritical },
+          },
+          playerOneHP: context.playerOneHP - toPlayerOne,
+          playerTwoHP: context.playerTwoHP - toPlayerTwo,
+        };
+      }),
+      after: {
+        1000: {
+          target: "PLAYING",
+          actions: assign({
+            playerOneMove: null,
+            playerTwoMove: null,
+          }),
         },
       },
-      states: {
-        winner: {
-          entry: "setWinner",
-          tags: ["winner"],
-        },
-        draw: {
-          tags: ["draw"],
+    },
+    GAME_OVER: {
+      tags: ["GAME_OVER"],
+      on: {
+        RESET: {
+          target: "PLAYING",
+          actions: assign(initialContext),
         },
       },
     },
