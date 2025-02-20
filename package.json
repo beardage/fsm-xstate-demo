@@ -17,6 +17,7 @@
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,mdx}\" --cache"
   },
   "dependencies": {
+    "@statelyai/inspect": "0.4.0",
     "@t3-oss/env-nextjs": "^0.10.1",
     "@xstate/react": "^5.0.1",
     "@xstate/store": "^2.6.2",

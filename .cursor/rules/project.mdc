@@ -1,3 +1,8 @@
+---
+description: project rules
+globs: **/*.{tsx,ts}
+---
+
 ASSISTANT RULES
 
 Holistic understanding of requirements & stack

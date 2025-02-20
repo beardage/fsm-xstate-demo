@@ -7,9 +7,18 @@ import { PlayerCard } from "./PlayerCard";
 import { HealthBars } from "./HealthBars";
 import { type NonNullMove } from "~/utils/game";
 import { ActionBar } from "./ActionBar";
+import { createBrowserInspector } from "@statelyai/inspect";
+
+const inspector = createBrowserInspector({
+  autoStart: false,
+});
 
 export const GameUI = () => {
-  const [state, send] = useMachine(gameMachine);
+  const [state, send] = useMachine(gameMachine, {
+    inspect: inspector.inspect,
+  });
+
+  inspector.start();
 
   if (state.matches("IDLE")) {
     return (
@@ -31,45 +40,47 @@ export const GameUI = () => {
     !!state.context.playerOneMove && !!state.context.playerTwoMove;
 
   return (
-    <div className="grid min-h-[600px] min-w-[650px] grid-cols-4 gap-4">
-      <HealthBars
-        playerOneHP={state.context.playerOneHP}
-        playerTwoHP={state.context.playerTwoHP}
-        maxHP={10}
-      />
+    <div className="relative my-5 min-h-screen">
+      <div className="grid min-h-[600px] min-w-[650px] grid-cols-4 gap-4">
+        <HealthBars
+          playerOneHP={state.context.playerOneHP}
+          playerTwoHP={state.context.playerTwoHP}
+          maxHP={10}
+        />
 
-      <Stage
-        playerOneMove={state.context.playerOneMove}
-        playerTwoMove={state.context.playerTwoMove}
-        isResolving={isResolving}
-        isGameOver={state.hasTag("GAME_OVER")}
-        winner={state.context.playerOneHP <= 0 ? "two" : "one"}
-      />
+        <Stage
+          playerOneMove={state.context.playerOneMove}
+          playerTwoMove={state.context.playerTwoMove}
+          isResolving={isResolving}
+          isGameOver={state.hasTag("GAME_OVER")}
+          winner={state.context.playerOneHP <= 0 ? "two" : "one"}
+        />
 
-      <PlayerCard
-        onMove={(move: NonNullMove) =>
-          send({ type: "SELECT_MOVE", player: "one", move })
-        }
-        selectedMove={state.context.playerOneMove}
-        disabled={state.hasTag("GAME_OVER") || isResolving}
-      />
+        <PlayerCard
+          onMove={(move: NonNullMove) =>
+            send({ type: "SELECT_MOVE", player: "one", move })
+          }
+          selectedMove={state.context.playerOneMove}
+          disabled={state.hasTag("GAME_OVER") || isResolving}
+        />
 
-      <PlayerCard
-        onMove={(move: NonNullMove) =>
-          send({ type: "SELECT_MOVE", player: "two", move })
-        }
-        selectedMove={state.context.playerTwoMove}
-        disabled={state.hasTag("GAME_OVER") || isResolving}
-      />
+        <PlayerCard
+          onMove={(move: NonNullMove) =>
+            send({ type: "SELECT_MOVE", player: "two", move })
+          }
+          selectedMove={state.context.playerTwoMove}
+          disabled={state.hasTag("GAME_OVER") || isResolving}
+        />
 
-      <ActionBar
-        isGameOver={state.hasTag("GAME_OVER")}
-        isResolving={isResolving}
-        canFight={canFight}
-        onFight={() => send({ type: "FIGHT" })}
-        onReset={() => send({ type: "RESET" })}
-        lastAction={lastAction}
-      />
+        <ActionBar
+          isGameOver={state.hasTag("GAME_OVER")}
+          isResolving={isResolving}
+          canFight={canFight}
+          onFight={() => send({ type: "FIGHT" })}
+          onReset={() => send({ type: "RESET" })}
+          lastAction={lastAction}
+        />
+      </div>
     </div>
   );
 };

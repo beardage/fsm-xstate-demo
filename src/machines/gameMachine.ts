@@ -36,6 +36,48 @@ export const gameMachine = setup({
       | { type: "FIGHT" }
       | { type: "RESET" },
   },
+  guards: {
+    bothPlayersSelected: ({ context }) =>
+      !!context.playerOneMove && !!context.playerTwoMove,
+    hasGameEnded: ({ context }) =>
+      context.playerOneHP <= 0 || context.playerTwoHP <= 0,
+  },
+  actions: {
+    initializeGame: assign({ ...initialContext, started: true }),
+    updateMoves: assign(({ context, event }) => {
+      if (event.type !== "SELECT_MOVE") return context;
+      return {
+        ...context,
+        playerOneMove:
+          event.player === "one" ? event.move : context.playerOneMove,
+        playerTwoMove:
+          event.player === "two" ? event.move : context.playerTwoMove,
+      };
+    }),
+    resolveCombat: assign(({ context }) => {
+      const winner = getWinner(context.playerOneMove, context.playerTwoMove);
+      const isCritical = winner !== "draw";
+      const toPlayerOne = calculateDamage(winner, "one");
+      const toPlayerTwo = calculateDamage(winner, "two");
+
+      return {
+        ...context,
+        lastAction: {
+          playerOne: context.playerOneMove,
+          playerTwo: context.playerTwoMove,
+          winner,
+          damage: { toPlayerOne, toPlayerTwo, isCritical },
+        },
+        playerOneHP: context.playerOneHP - toPlayerOne,
+        playerTwoHP: context.playerTwoHP - toPlayerTwo,
+      };
+    }),
+    clearMoves: assign({
+      playerOneMove: null,
+      playerTwoMove: null,
+    }),
+    resetGame: assign(initialContext),
+  },
 }).createMachine({
   context: initialContext,
   id: "game",
@@ -45,57 +87,31 @@ export const gameMachine = setup({
       on: {
         START_GAME: {
           target: "PLAYING",
-          actions: assign({ ...initialContext, started: true }),
+          actions: "initializeGame",
         },
       },
     },
     PLAYING: {
       on: {
         SELECT_MOVE: {
-          actions: assign({
-            playerOneMove: ({ event, context }) =>
-              event.player === "one" ? event.move : context.playerOneMove,
-            playerTwoMove: ({ event, context }) =>
-              event.player === "two" ? event.move : context.playerTwoMove,
-          }),
+          actions: "updateMoves",
         },
         FIGHT: {
           target: "RESOLVING",
-          guard: ({ context }) =>
-            !!context.playerOneMove && !!context.playerTwoMove,
+          guard: "bothPlayersSelected",
         },
       },
       always: {
         target: "GAME_OVER",
-        guard: ({ context }) =>
-          context.playerOneHP <= 0 || context.playerTwoHP <= 0,
+        guard: "hasGameEnded",
       },
     },
     RESOLVING: {
-      entry: assign(({ context }) => {
-        const winner = getWinner(context.playerOneMove, context.playerTwoMove);
-        const isCritical = winner !== "draw";
-        const toPlayerOne = calculateDamage(winner, "one");
-        const toPlayerTwo = calculateDamage(winner, "two");
-
-        return {
-          lastAction: {
-            playerOne: context.playerOneMove,
-            playerTwo: context.playerTwoMove,
-            winner,
-            damage: { toPlayerOne, toPlayerTwo, isCritical },
-          },
-          playerOneHP: context.playerOneHP - toPlayerOne,
-          playerTwoHP: context.playerTwoHP - toPlayerTwo,
-        };
-      }),
+      entry: "resolveCombat",
       after: {
         1000: {
           target: "PLAYING",
-          actions: assign({
-            playerOneMove: null,
-            playerTwoMove: null,
-          }),
+          actions: "clearMoves",
         },
       },
     },
@@ -104,7 +120,7 @@ export const gameMachine = setup({
       on: {
         RESET: {
           target: "PLAYING",
-          actions: assign(initialContext),
+          actions: "resetGame",
         },
       },
     },

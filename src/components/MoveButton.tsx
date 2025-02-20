@@ -1,5 +1,5 @@
 import { cn } from "~/utils/cn";
-import { type Move, type NonNullMove, MOVE_EMOJIS } from "~/utils/game";
+import { type NonNullMove, MOVE_EMOJIS } from "~/utils/game";
 
 export const MoveButton = ({
   move,
