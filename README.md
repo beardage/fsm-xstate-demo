@@ -5,10 +5,12 @@ This is a demo project to go along with my presentation Finite State Machines Fo
 It's an extremely simple game with all the UI and state powered by XState. Feel free to fork/copy/enhance etc :)
 
 I used: 
+
 t3 
   - typescript
   - nextjs
   - tailwind
+
 @statelyai
   - xstate
   - @statelyai/inspect
